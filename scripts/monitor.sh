@@ -15,26 +15,61 @@ NC='\033[0m' # No Color
 
 # Check if bitcoin-cli is available through Docker
 check_bitcoin_cli() {
+    echo "🔍 Checking Bitcoin Core container status..."
+    
+    if ! command -v docker >/dev/null 2>&1; then
+        echo -e "${RED}❌ Docker command not found${NC}"
+        echo "Please ensure Docker is installed and accessible"
+        exit 1
+    fi
+    
+    echo "📋 Listing running containers..."
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    echo ""
+    
     if ! docker ps | grep -q bitcoin-core-node; then
-        echo -e "${RED}❌ Bitcoin Core container is not running${NC}"
+        echo -e "${RED}❌ Bitcoin Core container 'bitcoin-core-node' is not running${NC}"
+        echo ""
+        echo "Available containers:"
+        docker ps --format "{{.Names}}" | head -10
         echo ""
         echo "To start the node: ./scripts/deploy.sh start"
         exit 1
     fi
     
+    echo -e "${GREEN}✅ Bitcoin Core container is running${NC}"
+    echo ""
+    
     # Check if Bitcoin Core is ready to accept commands
+    echo "🔗 Testing Bitcoin CLI connection..."
     local retries=0
     while [[ $retries -lt 3 ]]; do
+        echo "   Attempt $((retries + 1))/3..."
         if docker exec bitcoin-core-node bitcoin-cli -datadir=/home/bitcoin/.bitcoin getblockchaininfo >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ Bitcoin CLI is responding${NC}"
+            echo ""
             return 0
         fi
-        echo "⏳ Bitcoin Core is starting up, waiting..."
-        sleep 2
+        
+        # Show what the error actually is
+        echo "   Error details:"
+        docker exec bitcoin-core-node bitcoin-cli -datadir=/home/bitcoin/.bitcoin getblockchaininfo 2>&1 | head -3 | sed 's/^/   /'
+        echo ""
+        
+        echo "⏳ Bitcoin Core may still be initializing, waiting..."
+        sleep 3
         ((retries++))
     done
     
-    echo -e "${YELLOW}⚠️  Bitcoin Core may still be initializing${NC}"
-    return 0
+    echo -e "${YELLOW}⚠️  Bitcoin Core is not responding to CLI commands${NC}"
+    echo "This could mean:"
+    echo "  - Bitcoin Core is still starting up (can take 5-10 minutes)"
+    echo "  - Configuration issue"
+    echo "  - Bitcoin Core crashed during startup"
+    echo ""
+    echo "Check the logs with: cd docker && docker-compose logs bitcoin-node"
+    echo ""
+    return 1
 }
 
 # Execute bitcoin-cli command through Docker
@@ -340,6 +375,34 @@ case "${1:-}" in
         echo -e "${BLUE}👥 Peer Information:${NC}"
         get_peer_info | jq -r '.[] | "\(.addr) - \(.subver) - \(.conntime)s"' | head -10
         ;;
+    "debug")
+        echo "🐛 Debug Mode - Verbose Bitcoin Core Status"
+        echo "=========================================="
+        echo ""
+        
+        echo "1. Container Status:"
+        docker ps | grep bitcoin || echo "No bitcoin containers found"
+        echo ""
+        
+        echo "2. Container Resource Usage:"
+        docker stats bitcoin-core-node --no-stream 2>/dev/null || echo "Cannot get stats"
+        echo ""
+        
+        echo "3. Recent Container Logs (last 20 lines):"
+        docker logs bitcoin-core-node --tail=20 2>/dev/null || echo "Cannot get logs"
+        echo ""
+        
+        echo "4. Bitcoin Core Process Status:"
+        docker exec bitcoin-core-node ps aux 2>/dev/null | grep bitcoin || echo "Cannot check processes"
+        echo ""
+        
+        echo "5. Data Directory Contents:"
+        docker exec bitcoin-core-node ls -la /home/bitcoin/.bitcoin/ 2>/dev/null || echo "Cannot list data directory"
+        echo ""
+        
+        echo "6. Bitcoin CLI Test:"
+        docker exec bitcoin-core-node bitcoin-cli -datadir=/home/bitcoin/.bitcoin help 2>&1 | head -5
+        ;;
     "help")
         echo "Bitcoin Core Node Monitoring Script"
         echo ""
@@ -352,6 +415,7 @@ case "${1:-}" in
         echo "  watch      - Continuous monitoring"
         echo "  sync       - Show sync progress only"
         echo "  peers      - Show peer information"
+        echo "  debug      - Verbose debug information"
         echo "  help       - Show this help"
         ;;
     "")

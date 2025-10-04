@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
   python3-pip \
   libssl-dev \
   libevent-dev \
+  libevent-pthreads-dev \
   libboost-system-dev \
   libboost-filesystem-dev \
   libboost-test-dev \
@@ -89,6 +90,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
   libssl3 \
   libevent-2.1-7 \
+  libevent-pthreads-2.1-7 \
   libboost-system1.74.0 \
   libboost-filesystem1.74.0 \
   libboost-thread1.74.0 \

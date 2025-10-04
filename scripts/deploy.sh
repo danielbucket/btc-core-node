@@ -126,15 +126,28 @@ setup_directories() {
 build_image() {
     log_info "Building Bitcoin Core Docker image..."
     log_info "This may take 30-60 minutes on Raspberry Pi 5..."
+    log_warning "If you previously had a build failure, this rebuild should fix missing dependencies"
     
     cd docker
+    
+    # Remove any existing failed image
+    docker rmi bitcoin-core:latest 2>/dev/null || true
+    
+    # Build with no cache to ensure clean build
     docker build \
+        --no-cache \
         --tag bitcoin-core:latest \
         --build-arg BITCOIN_VERSION=26.0 \
         .
-    cd ..
     
-    log_success "Docker image built successfully"
+    if [[ $? -eq 0 ]]; then
+        log_success "Docker image built successfully"
+    else
+        log_error "Docker build failed"
+        exit 1
+    fi
+    
+    cd ..
 }
 
 # Deploy containers
@@ -266,6 +279,23 @@ case "${1:-}" in
             log_success "Cleanup completed"
         fi
         ;;
+    "rebuild")
+        log_info "Rebuilding Bitcoin Core image (fixes dependency issues)"
+        check_docker
+        check_files
+        setup_directories
+        
+        # Stop existing containers
+        cd docker
+        local compose_file=$(get_compose_file)
+        docker-compose -f "$compose_file" down
+        cd ..
+        
+        # Force rebuild
+        build_image
+        deploy_containers
+        show_status
+        ;;
     "help"|"-h"|"--help")
         echo "Bitcoin Core Node Deployment Script"
         echo ""
@@ -279,6 +309,7 @@ case "${1:-}" in
         echo "  restart    - Restart containers"
         echo "  logs       - View logs"
         echo "  status     - Show status"
+        echo "  rebuild    - Force rebuild (fixes dependency issues)"
         echo "  clean      - Remove containers and images"
         echo "  help       - Show this help"
         ;;
