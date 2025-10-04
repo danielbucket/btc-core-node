@@ -168,6 +168,24 @@ If you encounter sysctls-related errors during container startup:
 cd docker && docker-compose up -d
 ```
 
+If you encounter library dependency errors (like `libevent_pthreads-2.1.so.7: cannot open shared object file`):
+
+```bash
+# Rebuild the image to fix missing dependencies
+./scripts/deploy.sh rebuild
+
+# Or manually rebuild with no cache
+cd docker && docker build --no-cache -t bitcoin-core:latest .
+```
+
+If you get package installation errors during build:
+
+```bash
+# Check the build logs for specific missing packages
+# The Dockerfile will show available packages during build
+./scripts/deploy.sh build
+```
+
 ## Resources
 
 - [Bitcoin Core Documentation](https://bitcoin.org/en/bitcoin-core/)
