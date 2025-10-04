@@ -72,14 +72,22 @@ check_files() {
 
 # Check configuration
 check_config() {
-    if grep -q "PLEASE-CHANGE-THIS-SECURE-PASSWORD" config/bitcoin.conf; then
+    if grep -q "CHANGE-THIS-TO-A-SECURE-PASSWORD" config/bitcoin.conf; then
         log_warning "Please update the RPC password in config/bitcoin.conf"
-        log_warning "Change 'PLEASE-CHANGE-THIS-SECURE-PASSWORD-*' to a secure password"
+        log_warning "Change 'CHANGE-THIS-TO-A-SECURE-PASSWORD-NOW' to a secure password"
         read -p "Continue anyway? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
         fi
+    fi
+    
+    # Check for shell syntax in config file
+    if grep -q '\$(' config/bitcoin.conf; then
+        log_error "Invalid shell syntax found in bitcoin.conf"
+        log_error "Bitcoin Core cannot parse shell commands in configuration files"
+        log_error "Please edit config/bitcoin.conf and remove any shell syntax like \$(command)"
+        exit 1
     fi
 }
 

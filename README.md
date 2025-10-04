@@ -186,6 +186,28 @@ If you get package installation errors during build:
 ./scripts/deploy.sh build
 ```
 
+### Container Restart Loop
+
+If the container keeps restarting and you see "Container is restarting, wait until the container is running":
+
+```bash
+# Check the container logs for startup errors
+./scripts/deploy.sh logs
+
+# Common causes and fixes:
+# 1. Invalid bitcoin.conf - check for shell syntax like $(command)
+# 2. Permission issues with data directory
+# 3. Missing dependencies
+
+# Quick fix - restart with clean state:
+./scripts/deploy.sh stop
+./scripts/deploy.sh start
+
+# If issue persists, check configuration:
+nano config/bitcoin.conf
+# Remove any shell syntax and ensure valid Bitcoin Core options only
+```
+
 ## Resources
 
 - [Bitcoin Core Documentation](https://bitcoin.org/en/bitcoin-core/)

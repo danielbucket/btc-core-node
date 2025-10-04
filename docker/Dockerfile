@@ -2,7 +2,7 @@
 # This Dockerfile builds Bitcoin Core from source for optimal performance
 
 # Build stage
-FROM ubuntu:22.04 as builder
+FROM ubuntu:22.04 AS builder
 
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -81,6 +81,9 @@ RUN make install
 
 # Runtime stage
 FROM ubuntu:22.04
+
+# Accept version argument in runtime stage
+ARG BITCOIN_VERSION=26.0
 
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -170,5 +173,5 @@ CMD ["bitcoind", "-datadir=/home/bitcoin/.bitcoin", "-printtoconsole", "-conf=/h
 # Labels
 LABEL maintainer="Bitcoin Node Setup"
 LABEL description="Bitcoin Core node optimized for Raspberry Pi 5"
-LABEL version="${BITCOIN_VERSION}"
+LABEL version="26.0"
 LABEL architecture="arm64"
