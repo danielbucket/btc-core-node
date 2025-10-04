@@ -1,0 +1,129 @@
+# Bitcoin Core configuration optimized for Raspberry Pi 5
+# This configuration balances performance with resource constraints
+
+# Network settings
+# Listen for connections on all interfaces
+bind=0.0.0.0:8333
+
+# Maximum number of inbound connections (reduced for Pi 5)
+maxconnections=40
+
+# Listening mode
+listen=1
+
+# Enable UPnP
+upnp=1
+
+# DNS seeds
+dnsseed=1
+
+# Performance and memory settings
+# Database cache size in MB (adjust based on available RAM)
+# Pi 5 with 4GB RAM: use 512MB, with 8GB RAM: use 1024MB
+dbcache=512
+
+# Maximum memory pool size in MB
+maxmempool=150
+
+# Signature cache size in MB
+maxsigcachesize=32
+
+# Script verification threads (use Pi 5's 4 cores efficiently)
+par=3
+
+# Storage and blockchain settings
+# Prune mode: keep only last N MB of blocks (uncomment to enable)
+# For 1TB SSD, you can run full node, but pruning saves space
+# prune=50000
+
+# Reduce storage requirements by not storing old transaction data
+# blocksonly=1
+
+# Transaction relay settings
+# Minimum fee rate (satoshis per byte)
+minrelaytxfee=0.00001000
+
+# Bandwidth optimization
+# Limit upload bandwidth (KB/s) - important for home connections
+maxuploadtarget=5000
+
+# Limit download bandwidth during initial sync
+# maxreceivebuffer=5000
+# maxsendbuffer=1000
+
+# RPC settings (for local management only)
+# Enable RPC server
+server=1
+
+# RPC user and password (CHANGE THESE!)
+rpcuser=bitcoinrpc
+rpcpassword=your-secure-rpc-password-here
+
+# Bind RPC to localhost only for security
+rpcbind=127.0.0.1:8332
+
+# Allow RPC connections from localhost
+rpcallowip=127.0.0.1
+
+# RPC timeout
+rpctimeout=30
+
+# Logging settings
+# Enable debug logging (remove or set to 0 for production)
+debug=0
+
+# Log to specified file
+debuglogfile=/var/log/bitcoin/debug.log
+
+# Rotate log files
+logrotate=1
+
+# Maximum log file size in MB
+maxlogfilesize=100
+
+# Advanced settings
+# Assume valid (speeds up sync but reduces security - use with caution)
+# assumevalid=0000000000000000000000000000000000000000000000000000000000000000
+
+# Checkpoints (can speed up sync)
+checkpoints=1
+
+# Address index (needed for some applications, uses more disk space)
+# addressindex=1
+# txindex=1
+
+# ZMQ notifications (for applications that need real-time data)
+# zmqpubrawblock=tcp://127.0.0.1:28332
+# zmqpubrawtx=tcp://127.0.0.1:28333
+# zmqpubhashblock=tcp://127.0.0.1:28334
+# zmqpubhashtx=tcp://127.0.0.1:28335
+
+# Tor settings (uncomment to use Tor)
+# proxy=127.0.0.1:9050
+# onlynet=onion
+
+# Wallet settings (disabled by default for full node)
+disablewallet=1
+
+# Memory pool settings
+# Expiry time for transactions in memory pool (hours)
+mempoolexpiry=72
+
+# Persist memory pool between restarts
+persistmempool=1
+
+# Network timeout settings
+timeout=5000
+
+# Ban settings
+bantime=86400
+
+# Performance monitoring
+# Enable timing statistics
+logtimemicros=1
+
+# Data directory (set by Docker)
+# datadir=/home/bitcoin/.bitcoin
+
+# Pid file
+pid=/var/run/bitcoind.pid

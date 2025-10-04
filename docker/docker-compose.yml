@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  bitcoin-node:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+      args:
+        BITCOIN_VERSION: "26.0"
+    container_name: bitcoin-core-node
+    restart: unless-stopped
+    
+    # Resource limits optimized for Raspberry Pi 5
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '3.5'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    
+    # Volumes for persistent data
+    volumes:
+      - ./data:/home/bitcoin/.bitcoin:rw
+      - ./config/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
+      - ./logs:/var/log/bitcoin:rw
+      - /etc/localtime:/etc/localtime:ro
+    
+    # Network configuration
+    ports:
+      - "8333:8333"  # P2P port
+      - "127.0.0.1:8332:8332"  # RPC port (localhost only)
+    
+    # Environment variables
+    environment:
+      - BITCOIN_DATA=/home/bitcoin/.bitcoin
+      - BITCOIN_CONF=/home/bitcoin/.bitcoin/bitcoin.conf
+    
+    # Network mode for better performance
+    network_mode: bridge
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # User and group mapping (adjust UIDs if needed)
+    user: "1000:1000"
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        compress: "true"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-datadir=/home/bitcoin/.bitcoin", "getblockchaininfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    
+    # Sysctls for better network performance
+    sysctls:
+      - net.core.rmem_max=134217728
+      - net.core.wmem_max=134217728
+      - net.ipv4.tcp_rmem=4096 87380 134217728
+      - net.ipv4.tcp_wmem=4096 65536 134217728
+      - net.ipv4.tcp_congestion_control=bbr
+
+  # Optional: Monitoring container (Prometheus node exporter)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: bitcoin-node-exporter
+    restart: unless-stopped
+    
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    
+    ports:
+      - "127.0.0.1:9100:9100"
+    
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    
+    profiles:
+      - monitoring
+
+  # Optional: Log monitoring
+  promtail:
+    image: grafana/promtail:latest
+    container_name: bitcoin-promtail
+    restart: unless-stopped
+    
+    volumes:
+      - ./logs:/var/log/bitcoin:ro
+      - ./config/promtail.yml:/etc/promtail/config.yml:ro
+    
+    command: -config.file=/etc/promtail/config.yml
+    
+    profiles:
+      - monitoring
+
+# Networks
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes
+volumes:
+  bitcoin_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
