@@ -32,7 +32,7 @@ This project provides a complete setup for running a Bitcoin Core full node on a
 2. Prepare your system:
 
    ```bash
-   sudo ./scripts/system-setup.sh
+   ./scripts/system-setup.sh
    ```
 
 3. Configure Bitcoin Core:
