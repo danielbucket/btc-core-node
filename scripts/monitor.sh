@@ -17,8 +17,24 @@ NC='\033[0m' # No Color
 check_bitcoin_cli() {
     if ! docker ps | grep -q bitcoin-core-node; then
         echo -e "${RED}❌ Bitcoin Core container is not running${NC}"
+        echo ""
+        echo "To start the node: ./scripts/deploy.sh start"
         exit 1
     fi
+    
+    # Check if Bitcoin Core is ready to accept commands
+    local retries=0
+    while [[ $retries -lt 3 ]]; do
+        if docker exec bitcoin-core-node bitcoin-cli -datadir=/home/bitcoin/.bitcoin getblockchaininfo >/dev/null 2>&1; then
+            return 0
+        fi
+        echo "⏳ Bitcoin Core is starting up, waiting..."
+        sleep 2
+        ((retries++))
+    done
+    
+    echo -e "${YELLOW}⚠️  Bitcoin Core may still be initializing${NC}"
+    return 0
 }
 
 # Execute bitcoin-cli command through Docker
@@ -49,36 +65,74 @@ get_memory_info() {
 # Format bytes to human readable
 format_bytes() {
     local bytes=$1
-    if [[ $bytes -ge 1073741824 ]]; then
-        echo "$(echo "scale=2; $bytes/1073741824" | bc)GB"
-    elif [[ $bytes -ge 1048576 ]]; then
-        echo "$(echo "scale=2; $bytes/1048576" | bc)MB"
-    elif [[ $bytes -ge 1024 ]]; then
-        echo "$(echo "scale=1; $bytes/1024" | bc)KB"
+    
+    # Handle invalid input
+    if [[ -z "$bytes" ]] || [[ "$bytes" == "null" ]] || ! [[ "$bytes" =~ ^[0-9]+$ ]]; then
+        echo "0B"
+        return
+    fi
+    
+    if command -v bc >/dev/null; then
+        if [[ $bytes -ge 1073741824 ]]; then
+            echo "$(echo "scale=2; $bytes/1073741824" | bc)GB"
+        elif [[ $bytes -ge 1048576 ]]; then
+            echo "$(echo "scale=2; $bytes/1048576" | bc)MB"
+        elif [[ $bytes -ge 1024 ]]; then
+            echo "$(echo "scale=1; $bytes/1024" | bc)KB"
+        else
+            echo "${bytes}B"
+        fi
     else
-        echo "${bytes}B"
+        # Fallback without bc
+        if [[ $bytes -ge 1073741824 ]]; then
+            echo "$((bytes / 1073741824))GB"
+        elif [[ $bytes -ge 1048576 ]]; then
+            echo "$((bytes / 1048576))MB"
+        elif [[ $bytes -ge 1024 ]]; then
+            echo "$((bytes / 1024))KB"
+        else
+            echo "${bytes}B"
+        fi
     fi
 }
 
 # Calculate sync progress
 calculate_sync_progress() {
     local blockchain_info=$(get_blockchain_info)
-    local current_blocks=$(echo "$blockchain_info" | jq -r '.blocks')
-    local headers=$(echo "$blockchain_info" | jq -r '.headers')
-    local progress=$(echo "$blockchain_info" | jq -r '.verificationprogress')
+    if [[ $? -ne 0 || -z "$blockchain_info" ]]; then
+        echo "❌ Unable to retrieve blockchain information (node may be starting)"
+        return 1
+    fi
     
-    local progress_percent=$(echo "scale=2; $progress * 100" | bc)
+    local current_blocks=$(echo "$blockchain_info" | jq -r '.blocks // 0' 2>/dev/null || echo "0")
+    local headers=$(echo "$blockchain_info" | jq -r '.headers // 0' 2>/dev/null || echo "0")
+    local progress=$(echo "$blockchain_info" | jq -r '.verificationprogress // 0' 2>/dev/null || echo "0")
+    
+    # Validate that we got reasonable values
+    if [[ "$current_blocks" == "0" ]] || [[ "$headers" == "0" ]]; then
+        echo "⏳ Node is starting up, blockchain info not yet available"
+        return 1
+    fi
+    
+    local progress_percent="0"
+    if command -v bc >/dev/null && [[ "$progress" != "0" ]]; then
+        progress_percent=$(echo "scale=2; $progress * 100" | bc 2>/dev/null || echo "0")
+    fi
     
     echo "Current blocks: $current_blocks"
     echo "Headers: $headers"
     echo "Sync progress: ${progress_percent}%"
     
-    if [[ $current_blocks -eq $headers ]]; then
+    if [[ $current_blocks -eq $headers ]] && [[ $current_blocks -gt 0 ]]; then
         echo -e "${GREEN}✅ Fully synchronized${NC}"
         return 0
     else
         local remaining_blocks=$((headers - current_blocks))
-        echo -e "${YELLOW}⏳ Syncing... ($remaining_blocks blocks remaining)${NC}"
+        if [[ $remaining_blocks -gt 0 ]]; then
+            echo -e "${YELLOW}⏳ Syncing... ($remaining_blocks blocks remaining)${NC}"
+        else
+            echo -e "${YELLOW}⏳ Syncing... (progress updating)${NC}"
+        fi
         return 1
     fi
 }
@@ -112,27 +166,53 @@ show_network_status() {
     echo -e "${BLUE}🌐 Network Status:${NC}"
     
     local network_info=$(get_network_info)
-    local connections=$(echo "$network_info" | jq -r '.connections')
-    local version=$(echo "$network_info" | jq -r '.subversion')
+    if [[ $? -eq 0 && -n "$network_info" ]]; then
+        local connections=$(echo "$network_info" | jq -r '.connections // "Unknown"' 2>/dev/null || echo "Unknown")
+        local version=$(echo "$network_info" | jq -r '.subversion // "Unknown"' 2>/dev/null || echo "Unknown")
+        
+        echo "Bitcoin Core version: $version"
+        echo "Active connections: $connections"
+    else
+        echo "❌ Unable to retrieve network information (node may be starting)"
+        return 1
+    fi
     
-    echo "Bitcoin Core version: $version"
-    echo "Active connections: $connections"
+    # Check if port 8333 is reachable (improved method)
+    local port_check=false
     
-    # Check if port 8333 is reachable
-    if timeout 5 bash -c "</dev/tcp/$(hostname -I | awk '{print $1}')/8333" 2>/dev/null; then
-        echo -e "${GREEN}✅ Port 8333 is open${NC}"
+    # Method 1: Check if Bitcoin is listening on 8333
+    if docker exec bitcoin-core-node ss -tuln 2>/dev/null | grep -q ":8333"; then
+        port_check=true
+    fi
+    
+    # Method 2: Check with netstat if available
+    if [[ $port_check == false ]] && command -v netstat >/dev/null; then
+        if netstat -tuln 2>/dev/null | grep -q ":8333"; then
+            port_check=true
+        fi
+    fi
+    
+    if [[ $port_check == true ]]; then
+        echo -e "${GREEN}✅ Port 8333 is listening${NC}"
     else
         echo -e "${YELLOW}⚠️  Port 8333 may not be accessible from outside${NC}"
+        echo "   - Check firewall settings"
+        echo "   - Ensure port forwarding is configured"
     fi
     
     # Show peer info summary
-    local peer_count=$(get_peer_info | jq '. | length')
-    echo "Connected peers: $peer_count"
-    
-    if [[ $peer_count -gt 0 ]]; then
-        echo ""
-        echo "Peer countries:"
-        get_peer_info | jq -r '.[].addr' | cut -d':' -f1 | sort | uniq -c | head -5
+    local peer_info=$(get_peer_info)
+    if [[ $? -eq 0 && -n "$peer_info" ]]; then
+        local peer_count=$(echo "$peer_info" | jq '. | length' 2>/dev/null || echo "0")
+        echo "Connected peers: $peer_count"
+        
+        if [[ $peer_count -gt 0 ]]; then
+            echo ""
+            echo "Top peer countries:"
+            echo "$peer_info" | jq -r '.[].addr' 2>/dev/null | cut -d':' -f1 | sort | uniq -c | sort -nr | head -5 2>/dev/null || echo "   Unable to parse peer locations"
+        fi
+    else
+        echo "Connected peers: Unknown (retrieving...)"
     fi
 }
 
@@ -141,11 +221,15 @@ show_mempool_info() {
     echo -e "${BLUE}💾 Memory Pool:${NC}"
     
     local mempool_info=$(bitcoin_cli getmempoolinfo 2>/dev/null)
-    local mempool_size=$(echo "$mempool_info" | jq -r '.size')
-    local mempool_bytes=$(echo "$mempool_info" | jq -r '.bytes')
-    
-    echo "Transactions in mempool: $mempool_size"
-    echo "Mempool size: $(format_bytes $mempool_bytes)"
+    if [[ $? -eq 0 && -n "$mempool_info" ]]; then
+        local mempool_size=$(echo "$mempool_info" | jq -r '.size // 0' 2>/dev/null || echo "0")
+        local mempool_bytes=$(echo "$mempool_info" | jq -r '.bytes // 0' 2>/dev/null || echo "0")
+        
+        echo "Transactions in mempool: $mempool_size"
+        echo "Mempool size: $(format_bytes $mempool_bytes)"
+    else
+        echo "❌ Unable to retrieve mempool information (node may be starting)"
+    fi
 }
 
 # Main monitoring function

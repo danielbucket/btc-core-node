@@ -47,7 +47,7 @@ This project provides a complete setup for running a Bitcoin Core full node on a
    ```bash
    # Use the deployment script (automatically detects environment)
    ./scripts/deploy.sh
-   
+
    # Or manually from the docker directory:
    cd docker && docker-compose up -d
    ```
@@ -109,15 +109,26 @@ Expected sync times:
 Monitor your node status:
 
 ```bash
-# Check sync progress
+# Check sync progress and node status
 ./scripts/monitor.sh
 
-# View logs
-docker-compose logs -f bitcoin-node
+# Continuous monitoring (updates every 30 seconds)
+./scripts/monitor.sh watch
+
+# View real-time logs
+./scripts/monitor.sh logs
+
+# Interactive Bitcoin CLI
+./scripts/monitor.sh cli
+
+# View container logs directly
+cd docker && docker-compose logs -f bitcoin-node
 
 # Check system resources
 htop
 ```
+
+**Note**: If you see empty values for Bitcoin Core version or connections, the node may still be starting up. Wait a few minutes and try again.
 
 ## Maintenance
 
@@ -148,6 +159,7 @@ Common issues and solutions:
 ### Docker Build Errors
 
 If you encounter sysctls-related errors during container startup:
+
 ```bash
 # Use the deployment script which automatically handles environment detection
 ./scripts/deploy.sh
