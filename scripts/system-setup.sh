@@ -34,7 +34,9 @@ sudo apt install -y \
     ca-certificates \
     gnupg \
     lsb-release \
-    build-essential
+    build-essential \
+    jq \
+    bc
 
 # Install Docker
 echo "🐳 Installing Docker..."

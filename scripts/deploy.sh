@@ -52,14 +52,20 @@ check_files() {
             exit 1
         fi
     done
+    
+    # Check for optional monitoring config
+    if [[ ! -f "config/promtail.yml" ]]; then
+        log_warning "promtail.yml not found - monitoring services will not work"
+    fi
+    
     log_success "All required files found"
 }
 
 # Check configuration
 check_config() {
-    if grep -q "CHANGEME" config/bitcoin.conf; then
+    if grep -q "PLEASE-CHANGE-THIS-SECURE-PASSWORD" config/bitcoin.conf; then
         log_warning "Please update the RPC password in config/bitcoin.conf"
-        log_warning "Change 'CHANGEME-secure-password-123' to a secure password"
+        log_warning "Change 'PLEASE-CHANGE-THIS-SECURE-PASSWORD-*' to a secure password"
         read -p "Continue anyway? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then

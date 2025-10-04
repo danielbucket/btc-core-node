@@ -35,13 +35,13 @@ This project provides a complete setup for running a Bitcoin Core full node on a
 
 3. Configure Bitcoin Core:
    ```bash
-   cp config/bitcoin.conf.example config/bitcoin.conf
-   # Edit config/bitcoin.conf as needed
+   # Edit the bitcoin.conf file and change the RPC password
+   nano config/bitcoin.conf
    ```
 
 4. Start the Bitcoin node:
    ```bash
-   docker-compose up -d
+   cd docker && docker-compose up -d
    ```
 
 5. Monitor the sync process:

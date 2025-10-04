@@ -3,7 +3,7 @@ version: '3.8'
 services:
   bitcoin-node:
     build:
-      context: ./docker
+      context: .
       dockerfile: Dockerfile
       args:
         BITCOIN_VERSION: "26.0"
@@ -22,9 +22,9 @@ services:
     
     # Volumes for persistent data
     volumes:
-      - ./data:/home/bitcoin/.bitcoin:rw
-      - ./config/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
-      - ./logs:/var/log/bitcoin:rw
+      - ../data:/home/bitcoin/.bitcoin:rw
+      - ../config/bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
+      - ../logs:/var/log/bitcoin:rw
       - /etc/localtime:/etc/localtime:ro
     
     # Network configuration
@@ -101,8 +101,8 @@ services:
     restart: unless-stopped
     
     volumes:
-      - ./logs:/var/log/bitcoin:ro
-      - ./config/promtail.yml:/etc/promtail/config.yml:ro
+      - ../logs:/var/log/bitcoin:ro
+      - ../config/promtail.yml:/etc/promtail/config.yml:ro
     
     command: -config.file=/etc/promtail/config.yml
     
@@ -124,4 +124,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ./data
+      device: ../data

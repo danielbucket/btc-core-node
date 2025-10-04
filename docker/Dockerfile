@@ -97,6 +97,8 @@ RUN apt-get update && apt-get install -y \
     libdb++-dev \
     curl \
     gosu \
+    jq \
+    bc \
     && rm -rf /var/lib/apt/lists/*
 
 # Create bitcoin user and group
