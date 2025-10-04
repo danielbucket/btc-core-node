@@ -245,14 +245,14 @@ case "${1:-}" in
         ;;
     "down"|"stop")
         cd docker
-        local compose_file=$(get_compose_file)
+        compose_file=$(get_compose_file)
         docker-compose -f "$compose_file" down
         cd ..
         log_success "Bitcoin Core node stopped"
         ;;
     "restart")
         cd docker
-        local compose_file=$(get_compose_file)
+        compose_file=$(get_compose_file)
         docker-compose -f "$compose_file" restart
         cd ..
         log_success "Bitcoin Core node restarted"
@@ -260,7 +260,7 @@ case "${1:-}" in
         ;;
     "logs")
         cd docker
-        local compose_file=$(get_compose_file)
+        compose_file=$(get_compose_file)
         docker-compose -f "$compose_file" logs -f bitcoin-node
         cd ..
         ;;
@@ -273,7 +273,7 @@ case "${1:-}" in
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             cd docker
-            local compose_file=$(get_compose_file)
+            compose_file=$(get_compose_file)
             docker-compose -f "$compose_file" down --rmi all --volumes
             cd ..
             log_success "Cleanup completed"
@@ -287,7 +287,7 @@ case "${1:-}" in
         
         # Stop existing containers
         cd docker
-        local compose_file=$(get_compose_file)
+        compose_file=$(get_compose_file)
         docker-compose -f "$compose_file" down
         cd ..
         

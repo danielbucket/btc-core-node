@@ -87,28 +87,28 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies only
 RUN apt-get update && \
-    # First, check what libevent packages are available
-    apt-cache search libevent | grep "^libevent" | head -10 && \
-    # Install core runtime dependencies
-    apt-get install -y \
-      libssl3 \
-      libevent-2.1-7 \
-      libboost-system1.74.0 \
-      libboost-filesystem1.74.0 \
-      libboost-thread1.74.0 \
-      libminiupnpc17 \
-      libzmq5 \
-      libdb++-dev \
-      curl \
-      gosu \
-      jq \
-      bc && \
-    # Try to install libevent-pthreads if it exists
-    (apt-get install -y libevent-pthreads-2.1-7 || \
-     apt-get install -y libevent-extra-2.1-7 || \
-     echo "libevent-pthreads not found, using main libevent package") && \
-    # Clean up
-    rm -rf /var/lib/apt/lists/*
+  # First, check what libevent packages are available
+  apt-cache search libevent | grep "^libevent" | head -10 && \
+  # Install core runtime dependencies
+  apt-get install -y \
+  libssl3 \
+  libevent-2.1-7 \
+  libboost-system1.74.0 \
+  libboost-filesystem1.74.0 \
+  libboost-thread1.74.0 \
+  libminiupnpc17 \
+  libzmq5 \
+  libdb++-dev \
+  curl \
+  gosu \
+  jq \
+  bc && \
+  # Try to install libevent-pthreads if it exists
+  (apt-get install -y libevent-pthreads-2.1-7 || \
+  apt-get install -y libevent-extra-2.1-7 || \
+  echo "libevent-pthreads not found, using main libevent package") && \
+  # Clean up
+  rm -rf /var/lib/apt/lists/*
 
 # Create bitcoin user and group
 RUN groupadd -r bitcoin && useradd -r -g bitcoin bitcoin
@@ -123,9 +123,9 @@ COPY --from=builder /opt/bitcoin/lib/* /usr/local/lib/
 
 # Verify that required libraries are available
 RUN echo "Checking for required shared libraries..." && \
-    ldconfig && \
-    ldd /usr/local/bin/bitcoind | grep -E "(libevent|libssl|libboost)" && \
-    echo "Library check completed"
+  ldconfig && \
+  ldd /usr/local/bin/bitcoind | grep -E "(libevent|libssl|libboost)" && \
+  echo "Library check completed"
 
 # Create entrypoint script
 COPY <<'EOF' /entrypoint.sh
