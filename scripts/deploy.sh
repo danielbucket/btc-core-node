@@ -29,6 +29,15 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Determine which docker-compose file to use
+get_compose_file() {
+    if [[ $(uname -m) == "aarch64" ]] && [[ $(uname -s) == "Linux" ]] && [[ -f /proc/device-tree/model ]]; then
+        echo "docker-compose.production.yml"
+    else
+        echo "docker-compose.yml"
+    fi
+}
+
 # Check if Docker is running
 check_docker() {
     if ! docker info > /dev/null 2>&1; then
@@ -133,7 +142,16 @@ deploy_containers() {
     log_info "Deploying Bitcoin Core node..."
     
     cd docker
-    docker-compose up -d
+    
+    # Check if we're on a Raspberry Pi or similar ARM64 Linux system
+    if [[ $(uname -m) == "aarch64" ]] && [[ $(uname -s) == "Linux" ]] && [[ -f /proc/device-tree/model ]]; then
+        log_info "Detected Raspberry Pi - using production configuration"
+        docker-compose -f docker-compose.production.yml up -d
+    else
+        log_info "Using development/compatibility configuration"
+        docker-compose up -d
+    fi
+    
     cd ..
     
     log_success "Bitcoin Core node deployed"
@@ -143,12 +161,21 @@ deploy_containers() {
 show_status() {
     log_info "Container status:"
     cd docker
-    docker-compose ps
+    
+    # Determine which compose file to use
+    if [[ $(uname -m) == "aarch64" ]] && [[ $(uname -s) == "Linux" ]] && [[ -f /proc/device-tree/model ]]; then
+        docker-compose -f docker-compose.production.yml ps
+        local compose_file="docker-compose.production.yml"
+    else
+        docker-compose ps
+        local compose_file="docker-compose.yml"
+    fi
+    
     cd ..
     
     echo ""
     log_info "To view logs:"
-    echo "  docker-compose -f docker/docker-compose.yml logs -f bitcoin-node"
+    echo "  docker-compose -f docker/$compose_file logs -f bitcoin-node"
     echo ""
     log_info "To monitor sync progress:"
     echo "  ./scripts/monitor.sh"
@@ -205,20 +232,23 @@ case "${1:-}" in
         ;;
     "down"|"stop")
         cd docker
-        docker-compose down
+        local compose_file=$(get_compose_file)
+        docker-compose -f "$compose_file" down
         cd ..
         log_success "Bitcoin Core node stopped"
         ;;
     "restart")
         cd docker
-        docker-compose restart
+        local compose_file=$(get_compose_file)
+        docker-compose -f "$compose_file" restart
         cd ..
         log_success "Bitcoin Core node restarted"
         show_status
         ;;
     "logs")
         cd docker
-        docker-compose logs -f bitcoin-node
+        local compose_file=$(get_compose_file)
+        docker-compose -f "$compose_file" logs -f bitcoin-node
         cd ..
         ;;
     "status")
@@ -230,7 +260,8 @@ case "${1:-}" in
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             cd docker
-            docker-compose down --rmi all --volumes
+            local compose_file=$(get_compose_file)
+            docker-compose -f "$compose_file" down --rmi all --volumes
             cd ..
             log_success "Cleanup completed"
         fi

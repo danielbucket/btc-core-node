@@ -63,14 +63,13 @@ services:
       retries: 3
       start_period: 300s
     
-    # Sysctls for better network performance (commented out for compatibility)
-    # Uncomment these when running on actual Raspberry Pi with proper kernel support
-    # sysctls:
-    #   - net.core.rmem_max=134217728
-    #   - net.core.wmem_max=134217728
-    #   - net.ipv4.tcp_rmem=4096 87380 134217728
-    #   - net.ipv4.tcp_wmem=4096 65536 134217728
-    #   - net.ipv4.tcp_congestion_control=bbr
+    # Sysctls for better network performance on Raspberry Pi
+    sysctls:
+      - net.core.rmem_max=134217728
+      - net.core.wmem_max=134217728
+      - net.ipv4.tcp_rmem=4096 87380 134217728
+      - net.ipv4.tcp_wmem=4096 65536 134217728
+      - net.ipv4.tcp_congestion_control=bbr
 
   # Optional: Monitoring container (Prometheus node exporter)
   node-exporter:

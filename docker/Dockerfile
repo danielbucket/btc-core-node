@@ -9,29 +9,29 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libtool \
-    autotools-dev \
-    automake \
-    pkg-config \
-    bsdmainutils \
-    python3 \
-    python3-pip \
-    libssl-dev \
-    libevent-dev \
-    libboost-system-dev \
-    libboost-filesystem-dev \
-    libboost-test-dev \
-    libboost-thread-dev \
-    libminiupnpc-dev \
-    libzmq3-dev \
-    libqrencode-dev \
-    libdb++-dev \
-    curl \
-    wget \
-    git \
-    ccache \
-    && rm -rf /var/lib/apt/lists/*
+  build-essential \
+  libtool \
+  autotools-dev \
+  automake \
+  pkg-config \
+  bsdmainutils \
+  python3 \
+  python3-pip \
+  libssl-dev \
+  libevent-dev \
+  libboost-system-dev \
+  libboost-filesystem-dev \
+  libboost-test-dev \
+  libboost-thread-dev \
+  libminiupnpc-dev \
+  libzmq3-dev \
+  libqrencode-dev \
+  libdb++-dev \
+  curl \
+  wget \
+  git \
+  ccache \
+  && rm -rf /var/lib/apt/lists/*
 
 # Set Bitcoin Core version
 ARG BITCOIN_VERSION=26.0
@@ -57,23 +57,23 @@ WORKDIR /tmp/bitcoin/bitcoin-${BITCOIN_VERSION}
 # Configure build for ARM64 with optimizations for Raspberry Pi 5
 RUN ./autogen.sh
 RUN ./configure \
-    --prefix=/opt/bitcoin \
-    --disable-wallet \
-    --disable-gui-tests \
-    --disable-tests \
-    --disable-bench \
-    --with-gui=no \
-    --enable-hardening \
-    --with-pic \
-    --enable-cxx \
-    --disable-shared \
-    --with-bignum=no \
-    --enable-module-recovery \
-    --disable-dependency-tracking \
-    --enable-glibc-back-compat \
-    --enable-reduce-exports \
-    CXXFLAGS="-O2 -march=armv8-a+crc -mtune=cortex-a76" \
-    CFLAGS="-O2 -march=armv8-a+crc -mtune=cortex-a76"
+  --prefix=/opt/bitcoin \
+  --disable-wallet \
+  --disable-gui-tests \
+  --disable-tests \
+  --disable-bench \
+  --with-gui=no \
+  --enable-hardening \
+  --with-pic \
+  --enable-cxx \
+  --disable-shared \
+  --with-bignum=no \
+  --enable-module-recovery \
+  --disable-dependency-tracking \
+  --enable-glibc-back-compat \
+  --enable-reduce-exports \
+  CXXFLAGS="-O2 -march=armv8-a+crc -mtune=cortex-a76" \
+  CFLAGS="-O2 -march=armv8-a+crc -mtune=cortex-a76"
 
 # Build Bitcoin Core (use multiple cores for faster build)
 RUN make -j$(nproc)
@@ -87,19 +87,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y \
-    libssl3 \
-    libevent-2.1-7 \
-    libboost-system1.74.0 \
-    libboost-filesystem1.74.0 \
-    libboost-thread1.74.0 \
-    libminiupnpc17 \
-    libzmq5 \
-    libdb++-dev \
-    curl \
-    gosu \
-    jq \
-    bc \
-    && rm -rf /var/lib/apt/lists/*
+  libssl3 \
+  libevent-2.1-7 \
+  libboost-system1.74.0 \
+  libboost-filesystem1.74.0 \
+  libboost-thread1.74.0 \
+  libminiupnpc17 \
+  libzmq5 \
+  libdb++-dev \
+  curl \
+  gosu \
+  jq \
+  bc \
+  && rm -rf /var/lib/apt/lists/*
 
 # Create bitcoin user and group
 RUN groupadd -r bitcoin && useradd -r -g bitcoin bitcoin

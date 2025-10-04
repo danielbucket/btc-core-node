@@ -23,24 +23,32 @@ This project provides a complete setup for running a Bitcoin Core full node on a
 ## Quick Start
 
 1. Clone this repository:
+
    ```bash
    git clone <repository-url>
    cd raspiservers
    ```
 
 2. Prepare your system:
+
    ```bash
    sudo ./scripts/system-setup.sh
    ```
 
 3. Configure Bitcoin Core:
+
    ```bash
    # Edit the bitcoin.conf file and change the RPC password
    nano config/bitcoin.conf
    ```
 
 4. Start the Bitcoin node:
+
    ```bash
+   # Use the deployment script (automatically detects environment)
+   ./scripts/deploy.sh
+   
+   # Or manually from the docker directory:
    cd docker && docker-compose up -d
    ```
 
@@ -84,6 +92,7 @@ This project provides a complete setup for running a Bitcoin Core full node on a
 The initial blockchain download (IBD) will take several days to weeks depending on your internet connection. The Bitcoin blockchain is currently ~500GB+ in size.
 
 Expected sync times:
+
 - **Fast connection (100+ Mbps)**: 3-7 days
 - **Medium connection (50 Mbps)**: 1-2 weeks
 - **Slow connection (<25 Mbps)**: 2-4 weeks
@@ -98,6 +107,7 @@ Expected sync times:
 ## Monitoring
 
 Monitor your node status:
+
 ```bash
 # Check sync progress
 ./scripts/monitor.sh
@@ -130,6 +140,21 @@ Common issues and solutions:
 2. **High CPU usage**: Normal during sync, will decrease after IBD
 3. **Network issues**: Check port forwarding for port 8333
 4. **Docker issues**: Restart with `docker-compose restart`
+5. **Sysctls error**: If you get "no such file or directory" errors related to network sysctls:
+   - This is common on macOS/development environments
+   - The script automatically uses a compatibility mode
+   - On Raspberry Pi, it will use the production configuration with network optimizations
+
+### Docker Build Errors
+
+If you encounter sysctls-related errors during container startup:
+```bash
+# Use the deployment script which automatically handles environment detection
+./scripts/deploy.sh
+
+# Or manually use the compatibility version
+cd docker && docker-compose up -d
+```
 
 ## Resources
 

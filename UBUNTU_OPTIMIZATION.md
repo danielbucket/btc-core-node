@@ -26,6 +26,7 @@ This guide provides comprehensive system optimizations for running a Bitcoin Cor
 ### SSD Recommendations
 
 **Best Options:**
+
 - Samsung T7 (USB 3.2)
 - WD Black P50 Game Drive (USB 3.2)
 - Crucial X8 (USB 3.2)
@@ -227,17 +228,17 @@ Edit `/etc/netplan/50-cloud-init.yaml`:
 
 ```yaml
 network:
-    version: 2
-    ethernets:
-        eth0:
-            dhcp4: true
-            dhcp6: false
-            optional: true
-            # Optimize for Bitcoin P2P
-            receive-checksum-offload: true
-            transmit-checksum-offload: true
-            tcp-segmentation-offload: true
-            generic-segmentation-offload: true
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp6: false
+      optional: true
+      # Optimize for Bitcoin P2P
+      receive-checksum-offload: true
+      transmit-checksum-offload: true
+      tcp-segmentation-offload: true
+      generic-segmentation-offload: true
 ```
 
 Apply changes:
